@@ -1,0 +1,1037 @@
+<title>Canvas Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root{
+    --bg:#E9EEF7;
+    --surface:#FFFFFF;
+    --surface-2:#DCE4F2;
+    --ink:#0E1A3A;
+    --soft:#55618A;
+    --line:#C5CFE6;
+    --grid:rgba(14,26,58,.07);
+    --btn:#0E1A3A;
+    --btn-ink:#FFFFFF;
+    --c-seg:#E0455B;
+    --c-prop:#E3A008;
+    --c-can:#12A39A;
+    --c-rel:#A24BD6;
+    --c-ing:#2E9E5B;
+    --c-rec:#2F7DE1;
+    --c-act:#E0762A;
+    --c-soc:#7BA21B;
+    --c-cos:#5B5BD6;
+    --c-emo:#E8603C;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0B1229;--surface:#141C3A;--surface-2:#1D2750;--ink:#E8ECFB;--soft:#A1ABD0;--line:#2B3766;
+      --grid:rgba(232,236,251,.05);--btn:#E8ECFB;--btn-ink:#0B1229;
+      --c-seg:#FF7A8C;--c-prop:#FFC24A;--c-can:#43D6CB;--c-rel:#C98BF2;--c-ing:#5FD38B;
+      --c-rec:#6FA8FF;--c-act:#FFA264;--c-soc:#B4D84A;--c-cos:#8F8FFF;--c-emo:#FF8C6B;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0B1229;--surface:#141C3A;--surface-2:#1D2750;--ink:#E8ECFB;--soft:#A1ABD0;--line:#2B3766;
+    --grid:rgba(232,236,251,.05);--btn:#E8ECFB;--btn-ink:#0B1229;
+    --c-seg:#FF7A8C;--c-prop:#FFC24A;--c-can:#43D6CB;--c-rel:#C98BF2;--c-ing:#5FD38B;
+    --c-rec:#6FA8FF;--c-act:#FFA264;--c-soc:#B4D84A;--c-cos:#8F8FFF;--c-emo:#FF8C6B;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;color:var(--ink);font-family:'Instrument Sans',system-ui,sans-serif;}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 56px;}
+  h1,h2,h3{font-family:'Syne','Instrument Sans',sans-serif;font-weight:800;margin:0;text-wrap:balance;letter-spacing:-0.01em;}
+  button{font-family:inherit;}
+  [hidden]{display:none!important;}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);}
+  .k-seg{--dc:var(--c-seg);}.k-prop{--dc:var(--c-prop);}.k-can{--dc:var(--c-can);}.k-rel{--dc:var(--c-rel);}.k-ing{--dc:var(--c-ing);}
+  .k-rec{--dc:var(--c-rec);}.k-act{--dc:var(--c-act);}.k-soc{--dc:var(--c-soc);}.k-cos{--dc:var(--c-cos);}.k-emo{--dc:var(--c-emo);}.k-none{--dc:var(--ink);}
+
+  .card{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:26px;position:relative;}
+  .btn{appearance:none;border:none;border-radius:13px;padding:14px 24px;font-weight:700;font-size:15px;cursor:pointer;transition:transform .12s ease,opacity .12s ease;}
+  .btn:active{transform:scale(.97);}
+  .btn:focus-visible,.chip:focus-visible,.opt:focus-visible,.pcard:focus-visible,.slotb:focus-visible,.gift:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--dc,var(--ink));outline-offset:2px;}
+  .btn-primary{background:var(--btn);color:var(--btn-ink);}
+  .btn-primary:disabled{opacity:.3;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;}
+  .row.end{justify-content:flex-end;}
+
+  /* ---- canvas board ---- */
+  .board{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;grid-template-areas:
+    "soc soc act act prop prop rel rel seg seg"
+    "soc soc rec rec prop prop can can seg seg"
+    "cos cos cos cos cos ing ing ing ing ing";}
+  .a-soc{grid-area:soc}.a-act{grid-area:act}.a-prop{grid-area:prop}.a-rel{grid-area:rel}.a-seg{grid-area:seg}
+  .a-rec{grid-area:rec}.a-can{grid-area:can}.a-cos{grid-area:cos}.a-ing{grid-area:ing}
+  .bc{border-radius:10px;border:1.5px solid var(--line);background:var(--surface);position:relative;overflow:hidden;transition:background .5s,border-color .3s,transform .3s;}
+  .bc.todo{border-style:dashed;opacity:.75;}
+  .bc.now{border:2px solid var(--dc);background:color-mix(in srgb,var(--dc) 16%,var(--surface));animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dc) 45%,transparent)}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--dc) 0%,transparent)}}
+  .board.mini .bc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:38px;padding:3px 2px;}
+  .board.mini .bi{font-size:15px;line-height:1;}
+  .board.mini .bl{font-size:9px;font-weight:700;letter-spacing:.03em;color:var(--soft);display:none;text-transform:uppercase;}
+  @media (min-width:560px){.board.mini .bl{display:block;}.board.mini .bc{min-height:46px;}}
+  .board.mini .bc.done{border:2px solid var(--dc);background:linear-gradient(to top,color-mix(in srgb,var(--dc) 55%,var(--surface)) var(--lv),color-mix(in srgb,var(--dc) 12%,var(--surface)) var(--lv));}
+  .lv0{--lv:30%}.lv1{--lv:65%}.lv2{--lv:100%}
+  .board.full .bc{padding:12px 12px 10px;min-height:128px;display:flex;flex-direction:column;gap:6px;border-top:5px solid var(--dc);background:var(--surface);}
+  .board.full .bc.a-cos,.board.full .bc.a-ing{min-height:96px;}
+  .board.full .bh{display:flex;gap:7px;align-items:center;font-weight:800;font-size:12.5px;line-height:1.15;}
+  .board.full .bi{font-size:16px;}
+  .board.full .bs{margin:0;font-size:12px;line-height:1.4;color:var(--soft);flex:1;}
+  .pips{display:flex;gap:4px;}
+  .pips i{flex:1;height:5px;border-radius:99px;background:var(--surface-2);}
+  .pips i.on{background:var(--dc);}
+  @media (max-width:640px){
+    .board.full{display:flex;flex-direction:column;}
+    .board.full .bc{min-height:0;}
+  }
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;font-weight:700;color:var(--soft);}
+  .legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--ink);margin-right:6px;opacity:.5;}
+
+  /* ---- start ---- */
+  .hero h1{font-size:clamp(36px,9vw,64px);line-height:.98;margin:14px 0 16px;}
+  .hero h1 em{font-style:normal;background:linear-gradient(100deg,var(--c-seg),var(--c-prop) 30%,var(--c-ing) 55%,var(--c-rec) 80%,var(--c-rel));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero p.lead{color:var(--soft);font-size:16.5px;line-height:1.6;max-width:56ch;margin:0 0 22px;}
+  .hero .preview{margin:6px 0 4px;}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;}
+  .how div{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.4;font-weight:600;}
+  .how b{display:block;font-family:'Syne',sans-serif;font-size:15px;margin-bottom:3px;}
+  .field{margin-top:18px;max-width:440px;}
+  .field label{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-bottom:6px;}
+  .field input,.field textarea{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:15px;font-family:inherit;}
+  .coachline{display:flex;gap:12px;align-items:center;margin-top:22px;font-size:14px;color:var(--soft);line-height:1.45;}
+  .avatar{flex:none;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;}
+
+  /* ---- quiz ---- */
+  .top{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding:8px 0 10px;box-shadow:0 8px 10px -8px rgba(14,26,58,.25);}
+  .slim{display:none;grid-template-columns:repeat(10,1fr);gap:4px;}
+  .slim i{height:8px;border-radius:99px;background:var(--surface-2);border:1.5px solid var(--line);}
+  .slim i.d{background:var(--dc);border-color:var(--dc);}
+  .slim i.n{border-color:var(--dc);background:color-mix(in srgb,var(--dc) 35%,var(--surface));}
+  .board-m{display:none;margin-bottom:12px;}
+  @media (max-width:559px){
+    .board-d{display:none;}
+    .slim{display:grid;}
+    .board-m{display:block;}
+    .board-m .board.mini .bc{min-height:34px;}
+  }
+  .top-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--soft);font-weight:700;margin-bottom:8px;}
+  .top-row span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+  .bhead{display:flex;gap:14px;align-items:center;margin-bottom:12px;}
+  .bnum{flex:none;width:56px;height:56px;border-radius:16px;background:var(--dc);display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .bhead h2{font-size:22px;line-height:1.1;}
+  .bmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:99px;border:1.5px solid var(--dc);color:var(--ink);background:color-mix(in srgb,var(--dc) 14%,transparent);}
+  .brief{background:var(--surface-2);border-radius:14px;padding:13px 15px;font-size:14.5px;line-height:1.55;margin:14px 0 18px;border-left:5px solid var(--dc);}
+  .task{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;line-height:1.25;margin:0 0 14px;text-wrap:balance;}
+  .stamp{position:absolute;top:18px;right:18px;border:3px solid var(--dc);color:var(--dc);border-radius:10px;padding:4px 12px;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;letter-spacing:.08em;transform:rotate(-9deg);animation:stampin .45s cubic-bezier(.2,1.4,.4,1) both;background:var(--surface);}
+  @keyframes stampin{from{transform:rotate(-9deg) scale(2.4);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:1}}
+
+  .dim{margin-bottom:16px;}
+  .dim-q{font-weight:700;font-size:14px;margin-bottom:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{padding:9px 14px;border-radius:99px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;line-height:1.25;text-align:left;}
+  .chip:hover{border-color:var(--dc);}
+  .chip.on{border:2px solid var(--dc);background:color-mix(in srgb,var(--dc) 20%,var(--surface));padding:8px 13px;}
+  .chip.on::before{content:"✓ ";font-weight:800;}
+  .chip.dim-opt{border-style:dashed;color:var(--soft);}
+  .live{background:var(--surface-2);border-radius:14px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin:6px 0 4px;font-weight:600;border:1.5px dashed var(--dc);}
+  .live small{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:4px;}
+
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .pcard{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-size:13.5px;font-weight:600;line-height:1.3;min-height:84px;}
+  .pcard .pe{font-size:24px;line-height:1;}
+  .pcard:hover{border-color:var(--dc);}
+  .pcard.on{border:2px solid var(--dc);background:color-mix(in srgb,var(--dc) 20%,var(--surface));padding:11px;}
+  .pcard:disabled{cursor:default;opacity:.55;}
+  .pcard.on:disabled{opacity:1;}
+  .count{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--soft);margin-bottom:10px;}
+
+  .opts{display:flex;flex-direction:column;gap:10px;}
+  .opt{display:block;width:100%;text-align:left;padding:13px 15px;border-radius:13px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:14.5px;line-height:1.45;cursor:pointer;font-weight:600;}
+  .opt:hover{border-color:var(--dc);}
+  .opt.picked{border:2px solid var(--dc);background:color-mix(in srgb,var(--dc) 20%,var(--surface));padding:12px 14px;}
+  .opt:disabled{cursor:default;}
+  .opt:disabled:not(.picked){opacity:.5;}
+  .flash{background:var(--surface-2);border-radius:16px;padding:22px 18px;text-align:center;font-family:'Syne',sans-serif;font-weight:700;font-size:17px;line-height:1.35;min-height:92px;display:flex;align-items:center;justify-content:center;animation:pop .25s ease;border:1.5px solid var(--line);}
+  @keyframes pop{from{transform:translateY(8px);opacity:.3}to{transform:none;opacity:1}}
+  .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;}
+  .choices .opt{text-align:center;font-weight:700;padding:13px 10px;}
+
+  .scene{background:var(--surface-2);border-radius:14px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin-bottom:12px;border-left:5px solid var(--dc);}
+  .scene b{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:3px;}
+  .react{margin-top:12px;border-radius:14px;padding:12px 14px;background:color-mix(in srgb,var(--dc) 14%,var(--surface));font-weight:600;font-size:14.5px;animation:pop .25s ease;}
+
+  .sl{margin-bottom:16px;}
+  .sl label{display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-bottom:2px;gap:10px;}
+  .sl label span{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink);}
+  .sl input[type=range]{width:100%;accent-color:var(--dc);height:30px;}
+  .gauge{height:14px;border-radius:99px;background:linear-gradient(90deg,#E0455B 0 20%,#E3A008 20% 40%,#2E9E5B 40% 100%);position:relative;margin:10px 0 6px;}
+  .gauge i{position:absolute;top:-4px;width:6px;height:22px;border-radius:4px;background:var(--ink);border:2px solid var(--surface);transform:translateX(-50%);transition:left .15s;}
+  .gnums{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--soft);}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+  .readout div{background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--soft);font-weight:600;}
+  .readout b{display:block;font-family:'Syne',sans-serif;font-size:20px;color:var(--ink);margin-top:2px;}
+  .meter{height:16px;border-radius:99px;background:var(--surface-2);overflow:hidden;position:relative;margin:10px 0 4px;}
+  .meter i{position:absolute;inset:0 auto 0 0;background:var(--dc);border-radius:99px;transition:width .2s;}
+  .meter u{position:absolute;top:0;bottom:0;width:3px;background:var(--ink);}
+
+  .week{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+  .slotb{min-height:74px;border-radius:12px;border:1.5px dashed var(--line);background:transparent;color:var(--ink);padding:6px 4px;font-size:11.5px;font-weight:700;line-height:1.2;text-align:center;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;cursor:pointer;}
+  .slotb b{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;}
+  .slotb.filled{border-style:solid;border-color:var(--dc);background:color-mix(in srgb,var(--dc) 16%,var(--surface));}
+  .slotb .pe{font-size:18px;}
+
+  /* ---- coach panel / results ---- */
+  .coachpanel{margin-top:20px;border-radius:18px;padding:18px;background:color-mix(in srgb,var(--dc) 12%,var(--surface));border:1.5px solid var(--dc);animation:pop .3s ease;}
+  .coachpanel header{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+  .coachpanel header b{font-family:'Syne',sans-serif;font-size:15px;}
+  .coachpanel header span{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);}
+  .coachpanel p{margin:0 0 9px;font-size:14.5px;line-height:1.55;padding-left:12px;border-left:3px solid var(--dc);}
+  .coachpanel p:last-of-type{margin-bottom:0;}
+  .stack > * + *{margin-top:16px;}
+  .res-head h1{font-size:clamp(28px,7vw,44px);line-height:1.02;margin:10px 0;}
+  .res-head p{color:var(--soft);margin:0;font-size:15.5px;line-height:1.55;}
+  .index{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;}
+  .index .big{font-family:'Syne',sans-serif;font-weight:800;font-size:46px;line-height:1;}
+  .badge{display:inline-flex;padding:8px 16px;border-radius:99px;background:var(--btn);color:var(--btn-ink);font-weight:700;font-size:14px;}
+  .sect h3{font-size:19px;margin-bottom:4px;}
+  .sect > p{margin:0 0 12px;color:var(--soft);font-size:14px;line-height:1.5;}
+  .gap{border:1.5px solid var(--line);border-left:6px solid var(--dc);border-radius:14px;padding:14px 16px;background:var(--surface);}
+  .gap + .gap{margin-top:10px;}
+  .gap small{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:5px;}
+  .gap p{margin:0;font-size:14.5px;line-height:1.55;}
+  .gap .act{margin-top:8px;font-weight:700;}
+  .good{display:flex;flex-wrap:wrap;gap:8px;}
+  .good span{padding:8px 13px;border-radius:99px;font-size:13.5px;font-weight:700;border:1.5px solid var(--dc);background:color-mix(in srgb,var(--dc) 16%,var(--surface));}
+  details.rec{border:1.5px solid var(--line);border-left:6px solid var(--dc);border-radius:14px;background:var(--surface);}
+  details.rec + details.rec{margin-top:8px;}
+  details.rec summary{cursor:pointer;padding:12px 16px;font-weight:700;font-size:14.5px;display:flex;gap:10px;align-items:center;list-style:none;}
+  details.rec summary::-webkit-details-marker{display:none;}
+  details.rec summary::after{content:"+";margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--soft);}
+  details.rec[open] summary::after{content:"–";}
+  details.rec .in{padding:0 16px 14px;}
+  details.rec .in p{margin:0 0 8px;font-size:14px;line-height:1.5;padding-left:12px;border-left:3px solid var(--dc);}
+  .plan label{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:8px;cursor:pointer;font-size:14.5px;line-height:1.45;background:var(--surface);}
+  .plan input{width:20px;height:20px;margin-top:1px;accent-color:var(--ink);flex:none;}
+  .plan label.on{background:color-mix(in srgb,var(--c-ing) 14%,var(--surface));border-color:var(--c-ing);}
+  .plan label.on span{text-decoration:line-through;color:var(--soft);}
+  .quote{margin:6px 0 0;padding:0 0 0 14px;border-left:4px solid var(--ink);font-style:italic;color:var(--soft);font-size:14.5px;line-height:1.55;}
+  .tip-shot{font-size:13px;color:var(--soft);text-align:center;margin-top:10px;}
+
+  #party{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50;}
+  .pf{position:absolute;top:-60px;animation-name:fall;animation-timing-function:ease-in;animation-fill-mode:forwards;}
+  @keyframes fall{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),110vh) rotate(540deg);opacity:.9}}
+
+  @media (max-width:480px){
+    .card{padding:20px 16px;border-radius:18px;}
+    .how{grid-template-columns:1fr;}
+    .task{font-size:17px;}
+    .bhead h2{font-size:19px;}
+    .week{grid-template-columns:1fr;gap:6px;}
+    .slotb{flex-direction:row;min-height:46px;justify-content:flex-start;gap:10px;padding:8px 12px;text-align:left;font-size:13.5px;}
+    .slotb b{width:30px;font-size:11px;}
+    .slotb .pe{font-size:20px;}
+    .stamp{font-size:12px;top:14px;right:12px;}
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="wrap">
+
+  <section id="s-start" class="hero">
+    <div class="eyebrow">Emprendimiento emocional · Modelo Canvas</div>
+    <h1>Canvas <em>Lab.</em></h1>
+    <p class="lead">Nueve bloques, nueve juegos. En cada uno respondes sobre tu propio emprendimiento y recibes un consejo para mejorarlo y aplicarlo. Tu Canvas se va llenando mientras juegas y, al final, el coach te dice qué te falta para que sea más exitoso.</p>
+    <div class="preview" id="board-start"></div>
+    <div class="legend"><span>¿A quién? Clientes y valor</span><span>¿Cómo? Canales, relación, recursos, actividades y socios</span><span>¿Cuánto? Ingresos y costos</span></div>
+    <div class="how">
+      <div><b>9 juegos</b>Uno por cada bloque del Canvas.</div>
+      <div><b>Consejos</b>Según lo que respondas en cada uno.</div>
+      <div><b>Tu informe</b>Canvas completo y retroalimentación constructiva.</div>
+    </div>
+    <div class="field"><label for="in-biz">Nombre de tu emprendimiento</label><input id="in-biz" type="text" maxlength="40" placeholder="Ej: Dulce Fiesta, SnackFit…"></div>
+    <div class="field"><label for="in-idea">¿Qué vendes y a quién? (una frase)</label><input id="in-idea" type="text" maxlength="90" placeholder="Ej: postres personalizados para celebraciones"></div>
+    <div class="field"><label for="in-name">Tu nombre (opcional)</label><input id="in-name" type="text" autocomplete="given-name" maxlength="30" placeholder="Para personalizar tu informe"></div>
+    <div class="coachline"><div class="avatar">CG</div><div>Te acompaña el <strong>coach Camilo Gallego</strong>. Responde pensando en tu negocio real o en la idea que quieres lanzar.</div></div>
+    <div class="row"><button class="btn btn-primary" id="b-start">Empezar a construir</button></div>
+  </section>
+
+  <section id="s-quiz" hidden>
+    <div class="top">
+      <div class="top-row"><span id="q-count">Bloque 1 de 9</span><span id="q-biz"></span></div>
+      <div id="slim" class="slim"></div>
+      <div id="board" class="board-d"></div>
+    </div>
+    <div id="board2" class="board-m"></div>
+    <div class="card" id="qcard"></div>
+  </section>
+
+  <section id="s-res" hidden class="stack"></section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+  function el(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+  function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  var COP = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+
+  var B = [
+    {id:'seg', n:'Segmentos de clientes', s:'Clientes', ic:'👥', q:'¿A quién?', game:'Perfila a tu cliente',
+     brief:'¿Quién es tu cliente? Analiza edad, ubicación, ocupación, necesidades, hábitos y comportamiento. Y en clave emocional: ¿qué siente, qué le preocupa y qué quiere experimentar?'},
+    {id:'prop', n:'Propuesta de valor', s:'Valor', ic:'💎', q:'¿A quién?', game:'Arma tu frase',
+     brief:'¿Por qué el cliente debería elegir tu producto o servicio? Puede basarse en precio, calidad, innovación, rapidez, comodidad, personalización, diseño, servicio o experiencia.'},
+    {id:'can', n:'Canales', s:'Canales', ic:'📣', q:'¿Cómo?', game:'Elige tus 3 canales',
+     brief:'¿Cómo comunicas, vendes y entregas tu propuesta? Instagram, TikTok, WhatsApp, web, tienda, marketplace o ferias.'},
+    {id:'rel', n:'Relaciones con clientes', s:'Relación', ic:'🤝', q:'¿Cómo?', game:'Conversa con tu cliente',
+     brief:'¿Cómo quieres relacionarte? Atención personalizada, chat, asesoría, comunidad, seguimiento, posventa y fidelización. ¿Qué experiencia quieres que recuerde tu cliente?'},
+    {id:'ing', n:'Fuentes de ingresos', s:'Ingresos', ic:'💰', q:'¿Cuánto?', game:'Taller de precio y margen',
+     brief:'¿Cómo gana dinero tu emprendimiento? Productos, servicios, suscripciones, cursos, consultorías… Pero ojo: vender no es lo mismo que ganar dinero; hay que conocer costos y margen.'},
+    {id:'rec', n:'Recursos clave', s:'Recursos', ic:'🧰', q:'¿Cómo?', game:'Llena tu mochila',
+     brief:'Recursos humanos, físicos, tecnológicos, financieros e intelectuales. Y recuerda: el emprendedor también es un recurso clave, con su autoconfianza, disciplina y resiliencia.'},
+    {id:'act', n:'Actividades clave', s:'Actividades', ic:'⚙️', q:'¿Cómo?', game:'Planea tu semana',
+     brief:'Producir, comprar, vender, publicitar, atender, entregar, administrar, controlar e innovar. No puedes hacerlo todo a la vez: hay que priorizar.'},
+    {id:'soc', n:'Socios clave', s:'Socios', ic:'🔗', q:'¿Cómo?', game:'Conecta aliados',
+     brief:'¿Quiénes pueden ayudarte? Proveedores, distribuidores, aliados comerciales, instituciones, entidades financieras y otros emprendedores.'},
+    {id:'cos', n:'Estructura de costos', s:'Costos', ic:'🧾', q:'¿Cuánto?', game:'Clasifica y calcula',
+     brief:'¿Qué necesitas pagar para mantener funcionando tu emprendimiento? Costos fijos (arriendo, internet, nómina, software) y variables (materia prima, empaque, transporte, comisiones, publicidad).'}
+  ];
+  var EMO = {id:'emo', n:'Capa emocional', ic:'❤️', q:'Componente emocional', game:'Tu mapa emocional',
+     brief:'Todo Canvas tiene un componente emocional: qué emoción queremos generar, cuál puede dificultarnos y cómo la vamos a gestionar.'};
+  var TOTAL = B.length + 1;
+
+  var st;
+  function reset(){ st = {idx:0, name:'', biz:'', idea:'', pts:[], sum:[], tips:[], d:{}}; }
+  reset();
+  var bizName = function(){ return st.biz || 'tu emprendimiento'; };
+
+  /* ---------- board ---------- */
+  function drawBoard(target, full){
+    target.innerHTML = '';
+    var b = el('div','board '+(full?'full':'mini')); target.appendChild(b);
+    B.forEach(function(blk,i){
+      var isDone = st.pts[i]!==undefined, now = !full && target.dataset.live==='1' && i===st.idx;
+      var c = el('div','bc a-'+blk.id+' k-'+blk.id+(isDone?' done lv'+st.pts[i]:'')+(now?' now':(isDone?'':' todo')));
+      if(full){
+        var h = el('div','bh'); h.appendChild(el('span','bi',blk.ic)); h.appendChild(el('span','bn',blk.n)); c.appendChild(h);
+        c.appendChild(el('p','bs',st.sum[i]||'—'));
+        var pips = el('div','pips'); for(var p=0;p<3;p++) pips.appendChild(el('i', (isDone && p<=st.pts[i]) ? 'on' : '')); c.appendChild(pips);
+      } else {
+        c.appendChild(el('span','bi',blk.ic)); c.appendChild(el('span','bl',blk.s));
+      }
+      b.appendChild(c);
+    });
+  }
+  drawBoard($('board-start'), false);
+  function drawAll(){
+    ['board','board2'].forEach(function(id){ $(id).dataset.live='1'; drawBoard($(id), false); });
+    var sl=$('slim'); sl.innerHTML='';
+    for(var i=0;i<TOTAL;i++){
+      var blk = i<B.length ? B[i] : EMO;
+      var c = el('i', st.pts[i]!==undefined ? 'd k-'+blk.id : (i===st.idx ? 'n k-'+blk.id : ''));
+      sl.appendChild(c);
+    }
+  }
+
+  /* ---------- party ---------- */
+  var PARTY = ['🎉','✨','🚀','🌟','💡','🏆','🎈','💥'];
+  function party(n){
+    var old = $('party'); if(old) old.remove();
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var box = el('div'); box.id='party'; box.setAttribute('aria-hidden','true');
+    for(var i=0;i<n;i++){
+      var s = el('span','pf', PARTY[Math.floor(Math.random()*PARTY.length)]);
+      s.style.left=(Math.random()*100)+'vw'; s.style.fontSize=(20+Math.random()*24)+'px';
+      s.style.animationDuration=(2.4+Math.random()*2.2)+'s'; s.style.animationDelay=(Math.random()*0.7)+'s';
+      s.style.setProperty('--dx',(Math.random()*160-80)+'px'); box.appendChild(s);
+    }
+    document.body.appendChild(box); setTimeout(function(){ box.remove(); }, 5600);
+  }
+
+  /* ---------- helpers ---------- */
+  function chipRow(opts, sel, onPick, vagueIdx){
+    var row = el('div','chips');
+    opts.forEach(function(o,i){
+      var b = el('button','chip'+(sel===i?' on':'')+(i===vagueIdx?' dim-opt':''),o); b.type='button';
+      b.addEventListener('click', function(){ onPick(i); }); row.appendChild(b);
+    });
+    return row;
+  }
+  function sortCards(area, cards, labels, cb){
+    var i=0, right=0, wrong=[];
+    var count = el('div','count'), deck = el('div'), btns = el('div','choices');
+    area.appendChild(count); area.appendChild(deck); area.appendChild(btns);
+    var order = shuffle(cards);
+    function show(){
+      var c = order[i];
+      count.textContent = 'Tarjeta '+(i+1)+' de '+order.length;
+      deck.innerHTML=''; deck.appendChild(el('div','flash',c.s)); btns.innerHTML='';
+      labels.forEach(function(t,k){
+        var b = el('button','opt',t); b.type='button';
+        b.addEventListener('click', function(){
+          if(k===c.a) right++; else wrong.push({c:c,k:k});
+          b.classList.add('picked');
+          Array.prototype.forEach.call(btns.children, function(x){ x.disabled=true; });
+          setTimeout(function(){
+            i++;
+            if(i<order.length) show();
+            else { deck.innerHTML=''; btns.innerHTML=''; count.textContent='Tarjetas completadas'; cb(right, wrong); }
+          }, 260);
+        });
+        btns.appendChild(b);
+      });
+    }
+    show();
+  }
+
+  /* ---------- stage flow ---------- */
+  var card = $('qcard');
+  function render(){
+    var blk = st.idx < B.length ? B[st.idx] : EMO;
+    $('q-count').textContent = st.idx < B.length ? 'Bloque '+(st.idx+1)+' de 9' : 'Capa emocional · último paso';
+    $('q-biz').textContent = st.biz;
+    drawAll();
+    card.innerHTML=''; card.className='card k-'+blk.id;
+    var hd = el('div','bhead'); hd.appendChild(el('div','bnum',blk.ic));
+    var ht = el('div'); ht.appendChild(el('h2',null,blk.n));
+    var meta = el('div','bmeta'); meta.appendChild(el('span','tag',blk.q)); meta.appendChild(el('span','tag','Juego · '+blk.game)); ht.appendChild(meta);
+    hd.appendChild(ht); card.appendChild(hd);
+    card.appendChild(el('div','brief',blk.brief));
+    var area = el('div'); card.appendChild(area);
+    GAMES[st.idx](area);
+    window.scrollTo({top:0, behavior:'auto'});
+  }
+
+  var LEVEL = ['Bloque por construir','Bloque en desarrollo','Bloque sólido'];
+  function done(pts, sum, tips){
+    st.pts[st.idx]=pts; st.sum[st.idx]=sum; st.tips[st.idx]=tips;
+    var blk = st.idx < B.length ? B[st.idx] : EMO;
+    drawAll();
+    card.appendChild(el('div','stamp', pts===2?'SELLADO':(pts===1?'EN MARCHA':'POR REFORZAR')));
+    var panel = el('div','coachpanel');
+    var h = el('header'); h.appendChild(el('div','avatar','CG')); h.appendChild(el('b',null,'Consejos del coach')); h.appendChild(el('span',null,LEVEL[pts])); panel.appendChild(h);
+    tips.slice(0,4).forEach(function(t){ panel.appendChild(el('p',null,t)); });
+    card.appendChild(panel);
+    var row = el('div','row end'); var last = st.idx===TOTAL-1;
+    var b = el('button','btn btn-primary', last ? 'Ver mi Canvas completo' : 'Siguiente bloque');
+    b.addEventListener('click', function(){ if(last){ finish(); } else { st.idx++; render(); } });
+    row.appendChild(b); card.appendChild(row);
+    party(pts===2 ? 16 : 0);
+    panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  /* =============== 1. SEGMENTOS =============== */
+  var SEG_DIMS = [
+    {k:'edad', q:'¿Qué edad tiene tu cliente?', o:['Menos de 18','18 a 25 años','26 a 40 años','Más de 40','Cualquier edad'], v:4},
+    {k:'ocu', q:'¿A qué se dedica?', o:['Estudia','Trabaja en una empresa','Es independiente o emprendedor','Hogar y familia','Cualquier persona'], v:4},
+    {k:'lugar', q:'¿Dónde está?', o:['En mi barrio o localidad','En mi ciudad','En otra ciudad','En línea, donde sea','No lo sé'], v:4},
+    {k:'nec', q:'¿Qué necesita principalmente?', o:['Ahorrar tiempo','Ahorrar dinero','Sentirse bien','Sentirse especial','Todo lo anterior'], v:4},
+    {k:'hab', q:'¿Cómo compra?', o:['Por redes sociales','En persona','Por recomendación','Por WhatsApp','No lo he observado'], v:4},
+    {k:'sien', q:'¿Qué siente o le preocupa?', o:['Falta de tiempo','Desconfianza','Presupuesto limitado','Ganas de probar algo nuevo','No lo sé'], v:4}
+  ];
+  var SEG_VAGUE = {
+    edad:'No definiste la edad de tu cliente. Sin ese dato es difícil elegir el mensaje y el canal: piensa en una franja concreta y pruébala.',
+    ocu:'«Cualquier persona» no es un segmento. Elige a quién le resolvería mejor el problema (estudiantes, trabajadores, familias…) y empieza por ahí.',
+    lugar:'Aún no sabes dónde está tu cliente. Define si lo atenderás en tu barrio, tu ciudad o en línea: de eso dependen tus canales y tus costos de entrega.',
+    nec:'«Todo lo anterior» es señal de que falta enfocar. Escoge la necesidad principal que resuelves mejor: tu propuesta de valor sale de ahí.',
+    hab:'Todavía no has observado cómo compra tu cliente. Dedica una semana a mirar dónde y cómo compra: es información gratis para elegir canales.',
+    sien:'No sabes qué siente o le preocupa a tu cliente. Pregúntaselo a 5 personas: el componente emocional es lo que hace que te elijan.'
+  };
+  var SEG_CTX = {
+    nec:['Tu cliente valora el tiempo: la rapidez y la comodidad serán parte clave de tu propuesta.',
+         'Tu cliente es sensible al precio: cuida tu margen y busca diferenciarte en algo más que ser barato.',
+         'Tu cliente busca bienestar: cuida la experiencia y la emoción que genera tu producto.',
+         'Tu cliente quiere sentirse especial: la personalización y la presentación pueden ser tu diferencia.'],
+    sien:['Si a tu cliente le falta tiempo, facilítale la compra: pedidos rápidos y respuestas ágiles.',
+          'Si tu cliente desconfía, muestra pruebas: reseñas, fotos reales y cumplir lo que prometes.',
+          'Si su presupuesto es limitado, ofrece opciones de precio (tamaños, combos) sin sacrificar calidad.',
+          'Si tu cliente quiere probar cosas nuevas, las novedades pequeñas y las muestras pueden engancharlo.']
+  };
+  function gSeg(area){
+    var pick = new Array(SEG_DIMS.length).fill(-1);
+    var box = el('div'), live = el('div','live'), go = el('button','btn btn-primary','Confirmar perfil');
+    area.appendChild(el('h3','task','Construye el perfil de tu cliente para '+bizName()+'.'));
+    area.appendChild(box); area.appendChild(live);
+    var row = el('div','row end'); row.appendChild(go); area.appendChild(row);
+    function persona(){
+      var parts=[]; SEG_DIMS.forEach(function(d,i){ if(pick[i]>=0 && pick[i]!==d.v) parts.push(d.o[pick[i]].toLowerCase()); });
+      return parts;
+    }
+    function draw(){
+      box.innerHTML='';
+      SEG_DIMS.forEach(function(d,i){
+        var w = el('div','dim'); w.appendChild(el('div','dim-q',d.q));
+        w.appendChild(chipRow(d.o, pick[i], function(k){ pick[i]=k; draw(); }, d.v)); box.appendChild(w);
+      });
+      var p = persona(); live.innerHTML='';
+      live.appendChild(el('small',null,'Tu cliente, en una frase'));
+      live.appendChild(document.createTextNode(p.length ? p.join(' · ') : 'Elige una opción en cada pregunta y tu cliente irá tomando forma aquí.'));
+      go.disabled = pick.some(function(x){ return x<0; });
+    }
+    go.addEventListener('click', function(){
+      var defined = 0, tips=[];
+      SEG_DIMS.forEach(function(d,i){ if(pick[i]!==d.v) defined++; else tips.push(SEG_VAGUE[d.k]); });
+      if(pick[3]!==4) tips.push(SEG_CTX.nec[pick[3]]);
+      if(pick[5]!==4) tips.push(SEG_CTX.sien[pick[5]]);
+      if(defined>=5) tips.unshift('Ya puedes describir a tu cliente con detalle. El siguiente paso es validarlo: habla con 5 personas reales que encajen con este perfil.');
+      var pts = defined>=5 ? 2 : (defined>=3 ? 1 : 0);
+      st.d.edad = pick[0]; st.d.hab = pick[4]; st.d.segDefined = defined; st.d.nec = pick[3];
+      done(pts, persona().join(' · ') || 'Cliente aún sin definir', tips);
+    });
+    draw();
+  }
+
+  /* =============== 2. PROPUESTA =============== */
+  var BEN = ['Precio','Calidad','Innovación','Rapidez','Comodidad','Personalización','Diseño','Servicio','Experiencia'];
+  var BEN_TIP = {
+    'Precio':'Competir solo por precio es meterse al océano rojo: siempre habrá alguien más barato. Combínalo con otro valor.',
+    'Calidad':'La calidad convence cuando el cliente puede verla: muestra procesos, materiales y resultados.',
+    'Innovación':'Innovar funciona si resuelve una necesidad real: pruébalo con una versión sencilla y usuarios reales.',
+    'Rapidez':'La rapidez exige procesos claros: define tiempos reales y cúmplelos, o perderás confianza.',
+    'Comodidad':'La comodidad se nota en la experiencia: menos pasos para comprar, pedir y recibir.',
+    'Personalización':'Personalizar es un gran diferenciador, pero cuida costos y tiempos para que siga siendo rentable.',
+    'Diseño':'El diseño atrae, pero debe ir acompañado de buena experiencia y un precio que el cliente entienda.',
+    'Servicio':'El servicio construye recompra: escucha, resuelve y haz seguimiento después de la venta.',
+    'Experiencia':'La experiencia es lo que el cliente recuerda: define qué quieres que sienta en cada contacto.'
+  };
+  var DIFF = [
+    {t:'Hago algo que casi nadie ofrece en mi zona', s:'ofrezco algo poco común', p:2, tip:'Hacer algo que casi nadie ofrece es terreno de océano azul: valida que ese espacio tenga clientes dispuestos a pagar.'},
+    {t:'Lo hago mejor en algo concreto (calidad, servicio o rapidez)', s:'lo hago mejor en algo concreto', p:2, tip:'Ser mejor en algo concreto es una ventaja real: mídelo (tiempos, reseñas, recompra) para poder demostrarlo.'},
+    {t:'Cobro menos que los demás', s:'cobro menos', p:1, tip:'Cobrar menos es una ventaja frágil: otros pueden copiarla. Busca una segunda razón para que te elijan.'},
+    {t:'Todavía no sé qué me diferencia', s:'aún no sé qué me diferencia', p:0, tip:'Si no sabes qué te diferencia, el cliente tampoco lo sabrá. Pregúntale a 3 clientes por qué te comprarían a ti y no a otro.'}
+  ];
+  var FEEL = ['Confianza','Bienestar','Tranquilidad','Motivación','Satisfacción'];
+  var FEEL_TIP = {
+    'Confianza':'Para generar confianza, cumple lo que prometes y comunica con claridad los límites de tu servicio.',
+    'Bienestar':'Para generar bienestar, cuida la experiencia completa, desde el primer mensaje hasta la entrega.',
+    'Tranquilidad':'Para dar tranquilidad, anticípate: avisa tiempos, estado del pedido y qué hacer si algo falla.',
+    'Motivación':'Para motivar, muestra resultados y pequeños logros que el cliente pueda ver.',
+    'Satisfacción':'Para lograr satisfacción, pregunta cómo les fue y ajusta con lo que te cuenten.'
+  };
+  function gProp(area){
+    var b=-1, df=-1, f=-1;
+    var box=el('div'), live=el('div','live'), go=el('button','btn btn-primary','Confirmar mi propuesta');
+    area.appendChild(el('h3','task','Completa la frase de valor de '+bizName()+'.'));
+    area.appendChild(box); area.appendChild(live);
+    var row=el('div','row end'); row.appendChild(go); area.appendChild(row);
+    function draw(){
+      box.innerHTML='';
+      var w1=el('div','dim'); w1.appendChild(el('div','dim-q','1. El beneficio principal que ofreces')); w1.appendChild(chipRow(BEN,b,function(k){b=k;draw();})); box.appendChild(w1);
+      var w2=el('div','dim'); w2.appendChild(el('div','dim-q','2. Frente a las alternativas, me diferencio porque…')); w2.appendChild(chipRow(DIFF.map(function(x){return x.t;}),df,function(k){df=k;draw();})); box.appendChild(w2);
+      var w3=el('div','dim'); w3.appendChild(el('div','dim-q','3. La emoción que quiero que sienta mi cliente')); w3.appendChild(chipRow(FEEL,f,function(k){f=k;draw();})); box.appendChild(w3);
+      live.innerHTML=''; live.appendChild(el('small',null,'Tu propuesta de valor'));
+      live.appendChild(document.createTextNode(
+        (b>=0 ? 'Ofrezco '+BEN[b].toLowerCase() : 'Ofrezco …') + ' a mi cliente, y me diferencio porque ' + (df>=0 ? DIFF[df].s : '…') + ', para que sienta ' + (f>=0 ? FEEL[f].toLowerCase() : '…') + '.'));
+      go.disabled = b<0 || df<0 || f<0;
+    }
+    go.addEventListener('click', function(){
+      var pts = DIFF[df].p;
+      if(BEN[b]==='Precio' && df===2) pts = 0;
+      var tips = [BEN_TIP[BEN[b]], DIFF[df].tip, FEEL_TIP[FEEL[f]]];
+      if(BEN[b]==='Precio' && df===2) tips.unshift('Tu propuesta se apoya solo en precio y en cobrar menos: es el camino más frágil. Piensa en qué más puedes darle a tu cliente (servicio, personalización, experiencia).');
+      st.d.benefit = BEN[b]; st.d.diff = df;
+      done(pts, BEN[b]+' · '+DIFF[df].s+' · genera '+FEEL[f].toLowerCase(), tips);
+    });
+    draw();
+  }
+
+  /* =============== 3. CANALES =============== */
+  var CH = [
+    {n:'Instagram', e:'📸', r:'com'}, {n:'TikTok', e:'🎵', r:'com'}, {n:'WhatsApp', e:'💬', r:'both'},
+    {n:'Página web o tienda en línea', e:'🌐', r:'ven'}, {n:'Tienda o punto físico', e:'🏪', r:'ven'}, {n:'Marketplace', e:'🛒', r:'ven'},
+    {n:'Ferias y eventos', e:'🎪', r:'both'}, {n:'Recomendaciones (voz a voz)', e:'🗣️', r:'com'}
+  ];
+  function goodChannels(){
+    var g = [], a = st.d.edad;
+    if(a===0||a===1) g = ['Instagram','TikTok','WhatsApp','Marketplace'];
+    else if(a===2) g = ['Instagram','WhatsApp','Página web o tienda en línea','Marketplace'];
+    else if(a===3) g = ['WhatsApp','Tienda o punto físico','Ferias y eventos','Recomendaciones (voz a voz)'];
+    else g = ['WhatsApp','Instagram'];
+    var h = st.d.hab;
+    if(h===0) g = g.concat(['Instagram','TikTok']); if(h===1) g = g.concat(['Tienda o punto físico','Ferias y eventos']);
+    if(h===2) g.push('Recomendaciones (voz a voz)'); if(h===3) g.push('WhatsApp');
+    return g;
+  }
+  function gCan(area){
+    var sel=[], grid=el('div','pgrid'), cnt=el('div','count'), go=el('button','btn btn-primary','Confirmar canales');
+    area.appendChild(el('h3','task','Elige los 3 canales con los que llegarás a tu cliente.'));
+    area.appendChild(cnt); area.appendChild(grid);
+    var row=el('div','row end'); row.appendChild(go); area.appendChild(row);
+    function draw(){
+      grid.innerHTML=''; cnt.textContent='Canales elegidos: '+sel.length+' de 3';
+      CH.forEach(function(c){
+        var on = sel.indexOf(c.n)!==-1;
+        var b = el('button','pcard'+(on?' on':'')); b.type='button';
+        b.appendChild(el('span','pe',c.e)); b.appendChild(el('span',null,c.n));
+        b.addEventListener('click', function(){
+          var p = sel.indexOf(c.n);
+          if(p!==-1) sel.splice(p,1); else if(sel.length<3) sel.push(c.n);
+          draw();
+        });
+        grid.appendChild(b);
+      });
+      go.disabled = sel.length!==3;
+    }
+    go.addEventListener('click', function(){
+      var g = goodChannels(), hit = sel.filter(function(n){ return g.indexOf(n)!==-1; }).length;
+      var chosen = CH.filter(function(c){ return sel.indexOf(c.n)!==-1; });
+      var canCom = chosen.some(function(c){ return c.r==='com'||c.r==='both'; });
+      var canSell = chosen.some(function(c){ return c.r==='ven'||c.r==='both'; });
+      var tips=[];
+      if(st.d.edad===4 || st.d.edad===undefined) tips.push('Como aún no definiste la edad de tu cliente, no puedes saber si estos canales son los correctos. Vuelve al perfil de cliente y confirma dónde está.');
+      else if(hit>=2) tips.push('Tus canales encajan con el perfil de tu cliente: allí es donde él ya está y compra.');
+      else tips.push('Tus canales no coinciden del todo con dónde está tu cliente. Observa dónde busca y compra, y prueba un canal donde ya esté.');
+      if(!canCom) tips.push('Ningún canal elegido sirve para darte a conocer. Suma uno donde tu cliente te descubra (redes, recomendaciones, ferias).');
+      if(!canSell) tips.push('Ningún canal elegido sirve realmente para vender. Suma uno donde el cliente pueda comprar y pagar fácil.');
+      if(canCom && canSell) tips.push('Cubres comunicar y vender: ahora mide cuál canal trae más clientes y refuérzalo.');
+      tips.push('Pregúntate qué experiencia quieres que recuerde tu cliente en cada canal: mismo trato, mismas promesas.');
+      var pts = (hit>=2 || st.d.edad===4) && canCom && canSell ? (hit>=2 ? 2 : 1) : ((hit>=2 || (canCom&&canSell)) ? 1 : 0);
+      st.d.chHit = hit; st.d.channels = sel.slice();
+      done(pts, sel.join(' · '), tips);
+    });
+    draw();
+  }
+
+  /* =============== 4. RELACIONES =============== */
+  var REL = [
+    {s:'Una persona nueva te escribe: «¿cuánto cuesta?»', o:[
+      {t:'«$25.000.»', p:0, r:'😕 «Ah… ok, lo pienso.»', tip:'Dar solo el precio es frío: preguntar primero por su necesidad convierte la consulta en asesoría.'},
+      {t:'«Hola 😊 ¿para qué ocasión lo necesitas? Con eso te recomiendo la mejor opción y te cuento el precio.»', p:2, r:'😊 «¡Perfecto, justo es para una celebración!»', tip:'Preguntar antes de ofrecer es asesoría: así propones algo que sí resuelve su necesidad.'},
+      {t:'«Mira el catálogo de mi perfil.»', p:1, r:'🤔 «Uf… ¿y cuál me conviene?»', tip:'Mandar al catálogo sin acompañar deja solo al cliente: ofrece guiarlo con una pregunta.'}]},
+    {s:'Un cliente compró hace un mes y no ha vuelto.', o:[
+      {t:'Espero a que él me escriba.', p:0, r:'😶 El cliente se olvida de ti.', tip:'Esperar a que el cliente vuelva deja la recompra al azar: un seguimiento amable cuesta casi nada.'},
+      {t:'Le escribo para preguntar cómo le fue y ofrecerle algo que le sirva.', p:2, r:'🤩 «¡Qué detalle! Justo iba a pedir otra vez.»', tip:'El seguimiento posventa fideliza: preguntar cómo le fue demuestra que te importa.'},
+      {t:'Envío la misma promoción a toda mi lista.', p:1, r:'🙂 «Ah, una promo… tal vez.»', tip:'Un mensaje masivo ayuda, pero uno personalizado vale más: menciona su compra anterior.'}]},
+    {s:'Un cliente reclama porque algo salió mal.', o:[
+      {t:'Le explico que fue culpa de otro.', p:0, r:'😠 «A mí no me importa de quién fue.»', tip:'Culpar a otros no resuelve el problema: escucha, revisa y ofrece opciones, sin tomarlo como ataque personal.'},
+      {t:'Agradezco que me avise, reviso qué pasó, ofrezco una solución realista y le hago seguimiento.', p:2, r:'😌 «Gracias por responder así. Me quedo con ustedes.»', tip:'Agradecer, investigar y ofrecer una solución realista convierte un reclamo en lealtad.'},
+      {t:'Le devuelvo el dinero sin preguntar y no vuelvo a hablarle.', p:1, r:'😐 «Bueno… gracias, supongo.»', tip:'Devolver el dinero sin entender qué pasó repite el problema: pregunta, aprende y ajusta el proceso.'}]}
+  ];
+  function gRel(area){
+    var i=0, total=0, tips=[];
+    var wrap=el('div'); area.appendChild(wrap);
+    function show(){
+      wrap.innerHTML='';
+      var s=REL[i]; var sc=el('div','scene'); sc.appendChild(el('b',null,'Situación '+(i+1)+' de 3')); sc.appendChild(document.createTextNode(s.s)); wrap.appendChild(sc);
+      wrap.appendChild(el('h3','task','¿Cómo respondes?'));
+      var box=el('div','opts'); wrap.appendChild(box);
+      shuffle(s.o).forEach(function(o){
+        var b=el('button','opt',o.t); b.type='button';
+        b.addEventListener('click', function(){
+          Array.prototype.forEach.call(box.children,function(x){x.disabled=true;}); b.classList.add('picked');
+          total+=o.p; tips.push(o.tip); wrap.appendChild(el('div','react',o.r));
+          setTimeout(function(){ i++; if(i<REL.length) show(); else finishRel(); }, 1300);
+        });
+        box.appendChild(b);
+      });
+    }
+    function finishRel(){
+      wrap.innerHTML='';
+      var pts = total>=5 ? 2 : (total>=3 ? 1 : 0);
+      st.d.relScore = total;
+      done(pts, total>=5 ? 'Relación personalizada y proactiva' : (total>=3 ? 'Relación atenta, pero reactiva' : 'Relación aún distante con el cliente'), tips);
+    }
+    show();
+  }
+
+  /* =============== 5. INGRESOS =============== */
+  var STREAMS = ['Venta de productos','Servicios','Suscripciones o membresías','Cursos o talleres','Consultorías','Comisiones','Publicidad'];
+  function gIng(area){
+    var cost=8000, price=15000, streams=[];
+    area.appendChild(el('h3','task','Pon números a '+bizName()+': tu producto principal.'));
+    area.appendChild(el('p',null,'Usa valores aproximados de tu producto principal; son solo para este juego.')).style.cssText='margin:-6px 0 14px;color:var(--soft);font-size:13.5px;';
+    var slCost=el('div','sl'), slPrice=el('div','sl');
+    function mkSlider(wrap,label,id,min,max,step,val,on){
+      var lb=el('label'); lb.setAttribute('for',id); lb.appendChild(document.createTextNode(label)); var v=el('span',null,COP.format(val)); lb.appendChild(v); wrap.appendChild(lb);
+      var inp=document.createElement('input'); inp.type='range'; inp.id=id; inp.min=min; inp.max=max; inp.step=step; inp.value=val;
+      inp.addEventListener('input',function(){ v.textContent=COP.format(+inp.value); on(+inp.value); }); wrap.appendChild(inp);
+    }
+    mkSlider(slCost,'¿Cuánto te cuesta producir o prestar una unidad?','sl-cost',1000,60000,500,cost,function(x){cost=x;upd();});
+    mkSlider(slPrice,'¿A qué precio la vendes?','sl-price',1000,120000,500,price,function(x){price=x;upd();});
+    area.appendChild(slCost); area.appendChild(slPrice);
+    var gauge=el('div','gauge'), mark=el('i'); gauge.appendChild(mark); area.appendChild(gauge);
+    var gn=el('div','gnums'); ['0%','20%','40%','100%'].forEach(function(t){gn.appendChild(el('span',null,t));}); area.appendChild(gn);
+    var ro=el('div','readout'); var r1=el('div'), r2=el('div'); ro.appendChild(r1); ro.appendChild(r2); area.appendChild(ro);
+    var w=el('div','dim'); w.appendChild(el('div','dim-q','¿Por qué fuentes entra dinero? (marca las que apliquen o planeas)')); var sbox=el('div'); w.appendChild(sbox); area.appendChild(w);
+    function drawStreams(){
+      sbox.innerHTML=''; var row=el('div','chips');
+      STREAMS.forEach(function(s){ var on=streams.indexOf(s)!==-1; var b=el('button','chip'+(on?' on':''),s); b.type='button';
+        b.addEventListener('click',function(){ var p=streams.indexOf(s); if(p!==-1) streams.splice(p,1); else streams.push(s); drawStreams(); }); row.appendChild(b); });
+      sbox.appendChild(row);
+    }
+    function margin(){ return price>0 ? (price-cost)/price : 0; }
+    function upd(){
+      var m=margin(), pct=Math.round(m*100);
+      var pos = Math.max(0,Math.min(100, m<=0 ? 0 : (m<.4 ? m/.4*40 : 40+(m-.4)/.6*60)));
+      mark.style.left = pos+'%';
+      r1.innerHTML=''; r1.appendChild(document.createTextNode('Ganancia por unidad')); r1.appendChild(el('b',null,COP.format(price-cost)));
+      r2.innerHTML=''; r2.appendChild(document.createTextNode('Margen')); r2.appendChild(el('b',null,pct+'%'));
+    }
+    var go=el('button','btn btn-primary','Confirmar mis ingresos'); var row=el('div','row end'); row.appendChild(go); area.appendChild(row);
+    go.addEventListener('click', function(){
+      var m=margin(), pct=Math.round(m*100), tips=[], pts=0;
+      if(m<=0) tips.push('Con estos números pierdes dinero en cada venta. Sube el precio, baja el costo o cambia el producto antes de vender más: vender no es ganar dinero.');
+      else if(m<.25){ tips.push('Tu margen es de '+pct+'%: muy estrecho. Cualquier imprevisto o descuento te deja sin ganancia. Revisa costos o valida si tus clientes pagarían un poco más.'); }
+      else if(m<=.6){ tips.push('Tu margen es de '+pct+'%: saludable. Mantenlo vigilando que los costos no suban sin que lo notes.'); pts+=1; }
+      else { tips.push('Tu margen es de '+pct+'%: muy alto. Valida con clientes reales que de verdad pagarían ese precio antes de apoyarte en él.'); pts+=1; }
+      if(m>=.4 && m<=.6) { /* margen holgado dentro de rango */ }
+      if(streams.length>=2){ tips.push('Tienes más de una fuente de ingresos: eso te da estabilidad. Ejemplo: repostería = tortas + cupcakes + mesas de postres + cursos.'); pts+=1; }
+      else tips.push('Dependes de una sola fuente de ingresos. Piensa en una complementaria (un servicio, un curso, una suscripción): reduce el riesgo si una venta cae.');
+      if(m<=0) pts=0; else if(pts===2 && m<.25) pts=1;
+      st.d.price=price; st.d.cost=cost; st.d.margin=m; st.d.streams=streams.slice();
+      done(pts, 'Precio '+COP.format(price)+' · costo '+COP.format(cost)+' · margen '+pct+'%'+(streams.length?' · '+streams.join(', ').toLowerCase():''), tips);
+    });
+    upd(); drawStreams();
+  }
+
+  /* =============== 6. RECURSOS =============== */
+  var RES = [
+    {n:'Un ayudante o equipo de trabajo', e:'👷', c:'humano'}, {n:'Local, cocina, taller o equipos', e:'🏭', c:'fisico'},
+    {n:'Celular, redes sociales y software', e:'📱', c:'tecno'}, {n:'Capital para arrancar y un fondo de reserva', e:'💵', c:'fin'},
+    {n:'Recetas, diseños, marca o saberes propios', e:'🧠', c:'intel'}, {n:'Mi disciplina, autoconfianza y resiliencia', e:'💪', c:'emo'},
+    {n:'Materia prima y empaques', e:'📦', c:'fisico'}, {n:'Mentores y comunidad que me orienten', e:'🧭', c:'humano'},
+    {n:'Pagos en línea y facturación', e:'🧾', c:'tecno'}, {n:'Ahorros y crédito disponible', e:'🏦', c:'fin'}
+  ];
+  var RES_TIP = {
+    emo:'El emprendedor también es un recurso clave: desarrolla autoconfianza, disciplina, resiliencia y gestión emocional. No la dejes fuera de tu plan.',
+    humano:'Te falta pensar en personas: un ayudante, un socio o un mentor evitan que lo hagas todo solo.',
+    fisico:'No priorizaste recursos físicos: revisa qué espacio, equipos e insumos necesitas para producir con calidad.',
+    tecno:'Falta la parte tecnológica: celular, redes, pagos y facturación facilitan vender y controlar.',
+    fin:'No priorizaste lo financiero: sin capital de arranque y un fondo de reserva, un mes flojo puede detener todo.',
+    intel:'No contaste lo intelectual: tus recetas, diseños, marca o saberes son lo que te distingue; documéntalos y protégelos.'
+  };
+  function gRec(area){
+    var sel=[], grid=el('div','pgrid'), cnt=el('div','count'), go=el('button','btn btn-primary','Cerrar mi mochila');
+    area.appendChild(el('h3','task','Tu mochila solo aguanta 4. Elige los recursos que más necesitas hoy.'));
+    area.appendChild(cnt); area.appendChild(grid);
+    var row=el('div','row end'); row.appendChild(go); area.appendChild(row);
+    function draw(){
+      grid.innerHTML=''; cnt.textContent='En la mochila: '+sel.length+' de 4';
+      RES.forEach(function(r){
+        var on=sel.indexOf(r.n)!==-1; var b=el('button','pcard'+(on?' on':'')); b.type='button';
+        b.appendChild(el('span','pe',r.e)); b.appendChild(el('span',null,r.n));
+        b.addEventListener('click',function(){ var p=sel.indexOf(r.n); if(p!==-1) sel.splice(p,1); else if(sel.length<4) sel.push(r.n); draw(); });
+        grid.appendChild(b);
+      });
+      go.disabled = sel.length!==4;
+    }
+    go.addEventListener('click', function(){
+      var cats=[]; RES.forEach(function(r){ if(sel.indexOf(r.n)!==-1 && cats.indexOf(r.c)===-1) cats.push(r.c); });
+      var missing=['emo','humano','fisico','tecno','fin','intel'].filter(function(c){ return cats.indexOf(c)===-1; });
+      var tips=missing.slice(0,3).map(function(c){ return RES_TIP[c]; });
+      if(!missing.length) tips.push('Cubres todos los tipos de recurso. Ahora revisa cuáles ya tienes y cuáles te faltan.');
+      else tips.push('Con solo 4 cupos no puedes cubrirlo todo: lo importante es saber qué dejaste por fuera y cómo lo vas a conseguir.');
+      st.d.resEmo = cats.indexOf('emo')!==-1; st.d.resCats = cats.length;
+      var pts = cats.length>=4 ? 2 : (cats.length===3 ? 1 : 0);
+      done(pts, sel.join(' · '), tips);
+    });
+    draw();
+  }
+
+  /* =============== 7. ACTIVIDADES =============== */
+  var ACT = [
+    {n:'Producir', e:'🛠️', g:'ent'}, {n:'Comprar insumos', e:'🧺', g:'ent'}, {n:'Publicitar', e:'📢', g:'ven'}, {n:'Vender', e:'🛍️', g:'ven'},
+    {n:'Atender clientes', e:'💬', g:'ent'}, {n:'Entregar', e:'🚚', g:'ent'}, {n:'Administrar y controlar costos', e:'📊', g:'ctl'},
+    {n:'Innovar y probar algo nuevo', e:'💡', g:'ctl'}, {n:'Descansar y recargar', e:'🧘', g:'desc'}
+  ];
+  var DAYS = ['Lun','Mar','Mié','Jue','Vie'];
+  function gAct(area){
+    var plan=[], week=el('div','week'), grid=el('div','pgrid'), cnt=el('div','count');
+    var undo=el('button','btn btn-ghost','Quitar el último'), go=el('button','btn btn-primary','Confirmar mi semana');
+    area.appendChild(el('h3','task','Solo tienes 5 días de trabajo fuerte. ¿Qué haces cada uno?'));
+    area.appendChild(week); area.appendChild(cnt); area.appendChild(grid);
+    var row=el('div','row end'); row.appendChild(undo); row.appendChild(go); area.appendChild(row);
+    function draw(){
+      week.innerHTML=''; grid.innerHTML=''; cnt.textContent='Días planeados: '+plan.length+' de 5 · toca una actividad para agendarla';
+      DAYS.forEach(function(d,i){
+        var a = plan[i]!==undefined ? ACT[plan[i]] : null;
+        var b=el('div','slotb'+(a?' filled':'')); b.appendChild(el('b',null,d));
+        if(a){ b.appendChild(el('span','pe',a.e)); b.appendChild(el('span',null,a.n)); } else b.appendChild(el('span',null,'—'));
+        week.appendChild(b);
+      });
+      ACT.forEach(function(a,i){
+        var used=plan.indexOf(i)!==-1; var b=el('button','pcard'+(used?' on':'')); b.type='button'; b.disabled = used || plan.length>=5;
+        b.appendChild(el('span','pe',a.e)); b.appendChild(el('span',null,a.n));
+        b.addEventListener('click',function(){ if(plan.length<5 && !used){ plan.push(i); draw(); } });
+        grid.appendChild(b);
+      });
+      undo.disabled = !plan.length; go.disabled = plan.length!==5;
+    }
+    undo.addEventListener('click',function(){ plan.pop(); draw(); });
+    go.addEventListener('click', function(){
+      var names=plan.map(function(i){return ACT[i].n;}), has=function(g){ return plan.some(function(i){return ACT[i].g===g;}); };
+      var sell = names.indexOf('Vender')!==-1 || names.indexOf('Publicitar')!==-1;
+      var deliver = ['Producir','Comprar insumos','Entregar','Atender clientes'].some(function(n){return names.indexOf(n)!==-1;});
+      var control = names.indexOf('Administrar y controlar costos')!==-1 || names.indexOf('Innovar y probar algo nuevo')!==-1;
+      var rest = names.indexOf('Descansar y recargar')!==-1;
+      var tips=[];
+      if(!sell) tips.push('No programaste vender ni publicitar: sin ventas el negocio no respira. Reserva al menos un día para llegar a clientes.');
+      if(!deliver) tips.push('No incluiste producir, comprar, atender o entregar: asegúrate de poder cumplir lo que vendes.');
+      if(!control) tips.push('No incluiste administrar ni innovar: lo que no se controla no se mejora. Reserva un espacio semanal para revisar cifras y probar mejoras.');
+      if(names.indexOf('Atender clientes')===-1 && sell) tips.push('Falta atender clientes: la relación después de la venta es la que hace volver.');
+      if(!rest) tips.push('No incluiste descanso: tu energía también es un recurso clave. Programa pausas y límites entre trabajo y vida personal.');
+      else tips.push('Bien por programar descanso: cuidar tu energía sostiene tu negocio.');
+      if(sell&&deliver&&control) tips.unshift('Tu semana equilibra vender, entregar y mejorar: ese equilibrio es lo que hace sostenible un negocio.');
+      var cov=(sell?1:0)+(deliver?1:0)+(control?1:0);
+      st.d.actRest=rest; st.d.actCov=cov;
+      done(cov===3?2:(cov===2?1:0), plan.map(function(i,k){return DAYS[k]+': '+ACT[i].n.toLowerCase();}).join(' · '), tips);
+    });
+    draw();
+  }
+
+  /* =============== 8. SOCIOS =============== */
+  var PARTNERS = ['Proveedores','Distribuidores y domiciliarios','Entidades financieras','Aliados y otros emprendedores','Instituciones'];
+  var SOC_CARDS = [
+    {s:'Necesito insumos buenos y a buen precio.', a:0, w:'Los proveedores te aseguran insumos con calidad y precio: compara al menos 3 cotizaciones.'},
+    {s:'Necesito que mi producto llegue a la puerta del cliente.', a:1, w:'Los distribuidores y domiciliarios resuelven la entrega y te permiten llegar más lejos.'},
+    {s:'Necesito dinero para crecer.', a:2, w:'Las entidades financieras aportan capital; calcula cuánto necesitas y para qué antes de pedir.'},
+    {s:'Necesito clientes nuevos sin pagar tanta publicidad.', a:3, w:'Aliarte con otros emprendedores te da clientes nuevos con menos costo de publicidad.'},
+    {s:'Necesito formalizarme y aprender a gestionar mi negocio.', a:4, w:'Las instituciones (cámaras de comercio, universidades, entidades públicas) ofrecen capacitación, formalización y redes.'}
+  ];
+  var SOC_FOCUS = [
+    'Esta semana pide cotización a 3 proveedores y compara calidad, precio y cumplimiento.',
+    'Esta semana prueba una opción de entrega (domiciliario o mensajería) y mide tiempo y costo.',
+    'Esta semana calcula cuánto dinero necesitas y para qué, antes de buscar financiación.',
+    'Esta semana contacta a un emprendedor con clientes parecidos a los tuyos y propón una acción conjunta.',
+    'Esta semana averigua qué programas de apoyo o capacitación ofrece una institución cercana.'
+  ];
+  function gSoc(area){
+    var holder=el('div'); area.appendChild(el('h3','task','Cada necesidad de '+bizName()+' tiene un aliado. ¿Quién te ayuda con cada una?')); area.appendChild(holder);
+    sortCards(holder, SOC_CARDS, PARTNERS, function(right, wrong){
+      holder.appendChild(el('h3','task','¿A qué socio buscarás primero esta semana?')).style.marginTop='18px';
+      var chips=el('div','chips'); holder.appendChild(chips);
+      PARTNERS.forEach(function(p,i){
+        var b=el('button','chip',p); b.type='button';
+        b.addEventListener('click',function(){
+          Array.prototype.forEach.call(chips.children,function(x){x.disabled=true;}); b.classList.add('on');
+          var tips = wrong.slice(0,2).map(function(w){ return 'Sobre «'+w.c.s.replace(/\.$/,'')+'»: '+w.c.w; });
+          if(!wrong.length) tips.push('Identificaste al aliado correcto para cada necesidad: tienes claro tu mapa de ayuda.');
+          tips.push(SOC_FOCUS[i]);
+          st.d.socFocus=i;
+          done(right>=4?2:(right>=2?1:0), 'Prioridad: '+PARTNERS[i].toLowerCase()+' · aliados identificados: '+right+' de '+SOC_CARDS.length, tips);
+        });
+        chips.appendChild(b);
+      });
+    });
+  }
+
+  /* =============== 9. COSTOS =============== */
+  var COS_CARDS = [
+    {s:'Arriendo del local', a:0}, {s:'Materia prima', a:1}, {s:'Nómina', a:0},
+    {s:'Empaques y transporte', a:1}, {s:'Internet y software', a:0}, {s:'Comisiones y publicidad', a:1}
+  ];
+  function gCos(area){
+    var holder=el('div'); area.appendChild(el('h3','task','Primero clasifica los costos. Luego calcula cuánto tienes que vender.')); area.appendChild(holder);
+    sortCards(holder, COS_CARDS, ['Costo fijo','Costo variable'], function(right, wrong){
+      var d=st.d, unitGain=(d.price||15000)-(d.cost||8000);
+      var fixed=900000, units=60, tipsC=[];
+      if(right>=5) tipsC.push('Distingues bien costos fijos y variables: los fijos se pagan aunque no vendas; los variables suben con cada venta.');
+      wrong.slice(0,2).forEach(function(w){ tipsC.push('«'+w.c.s+'» es un costo '+(w.c.a===0?'fijo: se paga igual aunque no vendas.':'variable: cambia según cuánto produzcas o vendas.')); });
+      var sp=el('div'); holder.appendChild(sp);
+      sp.appendChild(el('h3','task','Tu punto de equilibrio')).style.marginTop='16px';
+      sp.appendChild(el('p',null,'Con tu ganancia de '+COP.format(unitGain)+' por unidad (del juego de Ingresos).')).style.cssText='margin:-6px 0 12px;color:var(--soft);font-size:13.5px;';
+      var s1=el('div','sl'), s2=el('div','sl');
+      function mk(wrap,label,id,min,max,step,val,fmt,on){
+        var lb=el('label'); lb.setAttribute('for',id); lb.appendChild(document.createTextNode(label)); var v=el('span',null,fmt(val)); lb.appendChild(v); wrap.appendChild(lb);
+        var inp=document.createElement('input'); inp.type='range'; inp.id=id; inp.min=min; inp.max=max; inp.step=step; inp.value=val;
+        inp.addEventListener('input',function(){ v.textContent=fmt(+inp.value); on(+inp.value); }); wrap.appendChild(inp);
+      }
+      mk(s1,'Costos fijos al mes (arriendo, nómina, internet, software)','sl-fixed',100000,6000000,50000,fixed,function(x){return COP.format(x);},function(x){fixed=x;upd();});
+      mk(s2,'Unidades que realistamente podrías vender al mes','sl-units',5,600,5,units,function(x){return x+' unidades';},function(x){units=x;upd();});
+      sp.appendChild(s1); sp.appendChild(s2);
+      var meter=el('div','meter'), bar=el('i'), tick=el('u'); meter.appendChild(bar); meter.appendChild(tick); sp.appendChild(meter);
+      var ro=el('div','readout'); var r1=el('div'), r2=el('div'); ro.appendChild(r1); ro.appendChild(r2); sp.appendChild(ro);
+      function be(){ return unitGain>0 ? Math.ceil(fixed/unitGain) : Infinity; }
+      function upd(){
+        var b=be(), scale=Math.max(units, isFinite(b)?b:units, 1)*1.15;
+        bar.style.width=(units/scale*100)+'%'; tick.style.left=(isFinite(b)?Math.min(100,b/scale*100):100)+'%';
+        r1.innerHTML=''; r1.appendChild(document.createTextNode('Punto de equilibrio')); r1.appendChild(el('b',null, isFinite(b)? b+' unid./mes' : 'No hay'));
+        r2.innerHTML=''; r2.appendChild(document.createTextNode('Tu meta de ventas')); r2.appendChild(el('b',null, units+' unid./mes'));
+      }
+      var go=el('button','btn btn-primary','Confirmar mis costos'); var row=el('div','row end'); row.appendChild(go); sp.appendChild(row);
+      go.addEventListener('click', function(){
+        var b=be(), pts=(right>=5?1:0), tips=tipsC.slice();
+        if(!isFinite(b)) tips.push('Con ganancia por unidad de cero o negativa no existe punto de equilibrio: vuelve a Ingresos y ajusta precio o costo.');
+        else if(units<b) tips.push('Necesitas vender '+b+' unidades al mes para no perder y estimas '+units+': te faltan '+(b-units)+'. Puedes subir tu margen, bajar costos fijos o ampliar tu base de clientes.');
+        else if(units>=b*1.5){ pts+=1; tips.push('Tu meta ('+units+') supera con holgura tu punto de equilibrio ('+b+'). Buena señal: asegúrate de que de verdad puedas vender esa cantidad y no solo desearla.'); }
+        else { pts+=1; tips.push('Tu meta ('+units+') apenas cubre tu punto de equilibrio ('+b+'). Cualquier mes flojo será pérdida: crea un colchón reduciendo costos fijos o subiendo margen.'); }
+        d.fixed=fixed; d.units=units; d.be=isFinite(b)?b:null;
+        done(pts, 'Costos fijos '+COP.format(fixed)+'/mes · equilibrio: '+(isFinite(b)?b+' unid.':'no alcanzable')+' · meta '+units+' unid.', tips);
+      });
+      upd();
+    });
+  }
+
+  /* =============== 10. CAPA EMOCIONAL =============== */
+  var HINDER = ['Miedo al fracaso','Frustración si no vendo','Ansiedad y estrés','Comparación con otros','Desmotivación'];
+  var HINDER_TIP = [
+    'El miedo no se elimina: se vuelve guía. Empieza con acciones de bajo costo y aprende de la respuesta del mercado.',
+    'Cuando las ventas no lleguen, nombra la emoción, separa hechos de interpretaciones y revisa precio, público, necesidad y comunicación antes de abandonar.',
+    'Organiza por prioridad, divide en tareas pequeñas y reserva descanso; evita decidir cuando estés muy alterado.',
+    'Compararte todo el tiempo roba energía: usa a la competencia como información, no como juicio sobre ti.',
+    'La motivación ayuda a comenzar; los hábitos ayudan a continuar: fija metas medibles y revísalas cada semana.'
+  ];
+  var MANAGE = ['Hacer una pausa y nombrar la emoción antes de decidir','Pedir retroalimentación a clientes o mentores','Dividir en tareas pequeñas y planificar','Todavía no lo sé','Aguantar y seguir sin hablar de ello'];
+  var MANAGE_TIP = [
+    'La pausa es poderosa: nombra lo que sientes, identifica qué lo activó y elige cómo responder.',
+    'Pedir retroalimentación convierte la emoción en información: busca a clientes, compañeros o mentores.',
+    'Dividir en tareas pequeñas baja la presión: elige hoy una acción de 20 minutos.',
+    'No saber cómo gestionarla es un buen punto de partida: elige una de las tres primeras estrategias y pruébala esta semana.',
+    'Aguantar en silencio suele aumentar la carga: hablar con alguien de confianza o buscar apoyo también es parte de emprender.'
+  ];
+  function gEmo(area){
+    var gen=-1, hin=-1, man=-1;
+    var box=el('div'), go=el('button','btn btn-primary','Confirmar mi mapa emocional');
+    area.appendChild(el('h3','task','Cierra tu Canvas con lo que sientes.'));
+    area.appendChild(box); var row=el('div','row end'); row.appendChild(go); area.appendChild(row);
+    function draw(){
+      box.innerHTML='';
+      var a=el('div','dim'); a.appendChild(el('div','dim-q','❤️ ¿Qué emoción quieres generar en tus clientes?')); a.appendChild(chipRow(FEEL,gen,function(k){gen=k;draw();})); box.appendChild(a);
+      var b=el('div','dim'); b.appendChild(el('div','dim-q','🧠 ¿Qué emoción tuya puede dificultarte emprender?')); b.appendChild(chipRow(HINDER,hin,function(k){hin=k;draw();})); box.appendChild(b);
+      var c=el('div','dim'); c.appendChild(el('div','dim-q','💪 ¿Cómo la vas a gestionar?')); c.appendChild(chipRow(MANAGE,man,function(k){man=k;draw();},3)); box.appendChild(c);
+      go.disabled = gen<0||hin<0||man<0;
+    }
+    go.addEventListener('click', function(){
+      st.d.hinder=hin; st.d.manage=man; st.d.gen=gen;
+      done(man<=2?2:(man===3?1:0), 'Genero '+FEEL[gen].toLowerCase()+' · me puede frenar: '+HINDER[hin].toLowerCase()+' · lo gestiono: '+MANAGE[man].toLowerCase(), [HINDER_TIP[hin], MANAGE_TIP[man], FEEL_TIP[FEEL[gen]]]);
+    });
+    draw();
+  }
+
+  var GAMES = [gSeg,gProp,gCan,gRel,gIng,gRec,gAct,gSoc,gCos,gEmo];
+
+  /* =============== RESULTADOS =============== */
+  var GAP = {
+    seg:{g:'Todavía no tienes un cliente lo bastante claro: sin él, el precio, el mensaje y los canales son suposiciones.', a:'Esta semana habla con 5 personas que encajen con tu cliente y anota qué necesitan, qué les preocupa y dónde compran.'},
+    prop:{g:'Tu propuesta aún no se distingue de la competencia: si solo compites por precio, siempre habrá alguien más barato.', a:'Escribe tu propuesta en una frase (para quién, qué problema, por qué tú) y pruébala con 3 clientes.'},
+    can:{g:'Tus canales no coinciden del todo con dónde está tu cliente, o no cubren a la vez dar a conocer y vender.', a:'Observa dónde compra tu cliente, abre un canal para comunicar y otro para vender, y mide cuál responde mejor en 2 semanas.'},
+    rel:{g:'Tu relación con los clientes es más reactiva que proactiva: aún no los cuidas antes y después de la venta.', a:'Escríbeles a tus últimos 5 clientes para preguntar cómo les fue y ofrecerles algo útil.'},
+    ing:{g:'Tu margen o tus fuentes de ingresos todavía no sostienen el negocio: vender no es lo mismo que ganar dinero.', a:'Calcula el costo real por unidad y ajusta precio o costo hasta lograr un margen que te alcance; piensa en un segundo ingreso complementario.'},
+    rec:{g:'Te falta cubrir algún tipo de recurso clave: personas, equipos, tecnología, dinero, saberes o tu propia energía.', a:'Haz una lista de lo que tienes y lo que te falta en cada tipo; elige el faltante más urgente y empieza a buscarlo.'},
+    act:{g:'Tu semana no equilibra vender, entregar y mejorar: lo que no se controla no se puede mejorar.', a:'Bloquea en tu agenda una hora semanal para administrar costos y revisar resultados.'},
+    soc:{g:'Aún no tienes claro quién puede ayudarte con insumos, entrega, dinero o clientes nuevos.', a:'Contacta esta semana a 3 posibles aliados del tipo que más te urge y compara condiciones.'},
+    cos:{g:'Tus costos fijos o tu punto de equilibrio no cuadran con lo que realistamente puedes vender.', a:'Reduce costos fijos o sube tu margen hasta que tu punto de equilibrio sea una meta alcanzable.'}
+  };
+  var PRIORITY = ['seg','prop','ing','cos','can','rel','rec','act','soc'];
+  var STRONG = {
+    seg:'Conoces a tu cliente', prop:'Tu propuesta se distingue', can:'Tus canales encajan', rel:'Cuidas la relación con tus clientes',
+    ing:'Tus números tienen sentido', rec:'Tus recursos están equilibrados', act:'Tu semana está equilibrada', soc:'Sabes quién te puede ayudar', cos:'Tus costos están bajo control'
+  };
+
+  function finish(){
+    var d=st.d, name=st.name, biz=bizName();
+    var total=0; for(var i=0;i<B.length;i++) total+=st.pts[i]||0;
+    var idxN = total/(B.length*2), idx = Math.round(idxN*100);
+    var tier = idxN>=0.78 ? 'Modelo listo para validar' : (idxN>=0.5 ? 'Modelo en construcción' : 'Idea en semilla');
+    var intro = idxN>=0.78 ? 'Tu modelo se sostiene bien en casi todos los bloques. Ahora toca lo más importante: probarlo con clientes reales y ajustarlo.'
+              : (idxN>=0.5 ? 'Tienes bases firmes y algunos bloques por reforzar. Eso es normal en un modelo que se está construyendo.'
+              : 'Hoy tu Canvas es una semilla: tiene idea y ganas, y varios bloques por definir. Es el mejor momento para aclararlos, antes de gastar dinero.');
+    var res=$('s-res'); res.innerHTML='';
+
+    var c1=el('div','card');
+    var head=el('div','res-head');
+    head.appendChild(el('div','eyebrow','Canvas Lab · informe de '+biz));
+    head.appendChild(el('h1',null,(name? name+', tu' : 'Tu')+' Canvas está listo.'));
+    head.appendChild(el('p',null,intro));
+    var ix=el('div','index'); ix.appendChild(el('span','big mono',idx+'%')); ix.appendChild(el('span','badge',tier));
+    ix.appendChild(el('span',null,'Índice de solidez')).style.cssText='font-size:12.5px;color:var(--soft);font-weight:700;';
+    head.appendChild(ix); c1.appendChild(head);
+    var bd=el('div'); bd.style.marginTop='18px'; c1.appendChild(bd);
+    var sh=el('p','tip-shot','📸 Toma una captura de pantalla de tu Canvas para guardarlo o entregarlo.'); c1.appendChild(sh);
+    res.appendChild(c1);
+    var saved=st.idx; drawBoard(bd,true); st.idx=saved;
+
+    /* gaps */
+    var order=B.map(function(b,i){return {b:b,i:i};}).filter(function(x){ return st.pts[x.i]<2; }).sort(function(a,b){
+      return st.pts[a.i]-st.pts[b.i] || PRIORITY.indexOf(a.b.id)-PRIORITY.indexOf(b.b.id); });
+    var c2=el('div','card sect');
+    c2.appendChild(el('h3',null,'Lo que quizá te falta para ser más exitoso'));
+    c2.appendChild(el('p',null,'Retroalimentación constructiva, de lo más urgente a lo menos urgente.'));
+    if(!order.length){ c2.appendChild(el('p',null,'Todos tus bloques salieron sólidos. Lo que falta ahora no está en el papel: es validar con clientes reales y medir resultados cada semana.')); }
+    order.slice(0,3).forEach(function(x,k){
+      var g=el('div','gap k-'+x.b.id); g.appendChild(el('small',null,(k===0?'Primero · ':'')+x.b.n));
+      g.appendChild(el('p',null,GAP[x.b.id].g)); g.appendChild(el('p','act','👉 '+GAP[x.b.id].a)); c2.appendChild(g);
+    });
+    /* cross alerts */
+    var al=[];
+    if(st.pts[0]===0) al.push(['seg','Sin un cliente definido, todo lo demás (canales, precio, mensaje) se apoya en suposiciones. Es la primera pieza que debes aclarar.']);
+    if(d.benefit==='Precio' && d.diff===2) al.push(['prop','Tu propuesta depende del precio y de cobrar menos, pero tu margen es de '+Math.round((d.margin||0)*100)+'%: si bajas más el precio, el negocio no se sostiene.']);
+    if(d.margin!==undefined && d.margin>0 && d.margin<.25 && d.be) al.push(['ing','Con un margen estrecho necesitas vender '+d.be+' unidades al mes solo para cubrir costos. Es riesgoso vender mucho y ganar poco.']);
+    if(d.be && d.units && d.units<d.be) al.push(['cos','Tu punto de equilibrio ('+d.be+') está por encima de lo que dices poder vender ('+d.units+'): hoy el modelo pierde dinero.']);
+    if(st.pts[1]===2 && st.pts[3]<2) al.push(['rel','Tienes una buena propuesta, pero la relación con tus clientes es distante: puedes perder la recompra, que es la venta más barata.']);
+    if(d.chHit!==undefined && d.chHit<2 && d.edad!==undefined && d.edad!==4) al.push(['can','Tus canales no coinciden con el perfil de cliente que definiste: la mejor propuesta no sirve si no llega a donde él está.']);
+    if(d.resEmo===false) al.push(['rec','Dejaste fuera al emprendedor como recurso clave: sin autoconfianza, disciplina y gestión emocional el modelo no se sostiene en los meses difíciles.']);
+    if(d.actRest===false) al.push(['act','No agendaste descanso en tu semana: la energía del emprendedor es el recurso que más rápido se agota.']);
+    if(al.length){
+      var h=el('h3',null,'Alertas entre bloques'); h.style.cssText='font-size:15px;margin:16px 0 8px;'; c2.appendChild(h);
+      al.slice(0,4).forEach(function(a){ var g=el('div','gap k-'+a[0]); g.appendChild(el('p',null,a[1])); c2.appendChild(g); });
+    }
+    res.appendChild(c2);
+
+    /* strengths */
+    var strong=B.map(function(b,i){return {b:b,i:i};}).filter(function(x){ return st.pts[x.i]===2; });
+    if(strong.length){
+      var c3=el('div','card sect'); c3.appendChild(el('h3',null,'Lo que ya haces bien'));
+      c3.appendChild(el('p',null,'Apóyate en estas fortalezas mientras trabajas lo demás.'));
+      var gd=el('div','good'); strong.forEach(function(x){ var s=el('span','k-'+x.b.id, x.b.ic+' '+STRONG[x.b.id]); gd.appendChild(s); }); c3.appendChild(gd);
+      res.appendChild(c3);
+    }
+
+    /* emotional layer */
+    var c4=el('div','card sect k-emo');
+    c4.appendChild(el('h3',null,'❤️ Tu capa emocional'));
+    c4.appendChild(el('p',null,(st.sum[9]||'')));
+    (st.tips[9]||[]).slice(0,2).forEach(function(t){ var g=el('div','gap k-emo'); g.appendChild(el('p',null,t)); c4.appendChild(g); });
+    res.appendChild(c4);
+
+    /* recap per block */
+    var c5=el('div','card sect');
+    c5.appendChild(el('h3',null,'Todos tus consejos, por bloque'));
+    c5.appendChild(el('p',null,'Para repasarlos con calma.'));
+    B.forEach(function(b,i){
+      var dt=document.createElement('details'); dt.className='rec k-'+b.id;
+      var sm=document.createElement('summary'); sm.appendChild(el('span',null,b.ic)); sm.appendChild(el('span',null,b.n+' · '+LEVEL[st.pts[i]].replace('Bloque ','')));
+      dt.appendChild(sm); var inn=el('div','in'); (st.tips[i]||[]).forEach(function(t){ inn.appendChild(el('p',null,t)); }); dt.appendChild(inn);
+      c5.appendChild(dt);
+    });
+    res.appendChild(c5);
+
+    /* plan */
+    var steps=order.slice(0,3).map(function(x){ return GAP[x.b.id].a; });
+    ['Valida tu propuesta de valor con 5 clientes reales y anota lo que te digan.','Mide tus ventas y tus costos cada semana, aunque sea en un cuaderno.','Pide retroalimentación sobre tu emprendimiento a un mentor o compañero.'].forEach(function(x){ if(steps.length<3) steps.push(x); });
+    var c6=el('div','card sect plan');
+    c6.appendChild(el('h3',null,'Tu plan de los próximos 7 días'));
+    c6.appendChild(el('p',null,'Marca cada paso cuando lo cumplas.'));
+    steps.forEach(function(s,k){
+      var lb=document.createElement('label'); var cb=document.createElement('input'); cb.type='checkbox'; cb.id='plan'+k;
+      var sp=el('span',null,s); lb.appendChild(cb); lb.appendChild(sp);
+      cb.addEventListener('change',function(){ lb.classList.toggle('on',cb.checked); if(cb.checked) party(10); });
+      c6.appendChild(lb);
+    });
+    c6.appendChild(el('p','quote','“No siempre podemos controlar lo que sucede, pero podemos aprender a gestionar nuestras decisiones y nuestra manera de responder.” — Coach Camilo Gallego'));
+    var rr=el('div','row'); var again=el('button','btn btn-ghost','Construir otro Canvas'); again.addEventListener('click',function(){ reset(); drawBoard($('board-start'),false); show($('s-start')); }); rr.appendChild(again); c6.appendChild(rr);
+    res.appendChild(c6);
+
+    show(res);
+    party(idxN>=0.78 ? 40 : 18);
+  }
+
+  function show(sec){ ['s-start','s-quiz','s-res'].forEach(function(id){ $(id).hidden = $(id)!==sec; }); window.scrollTo({top:0,behavior:'auto'}); }
+
+  $('b-start').addEventListener('click', function(){
+    reset();
+    st.biz = $('in-biz').value.trim(); st.idea = $('in-idea').value.trim(); st.name = $('in-name').value.trim();
+    show($('s-quiz')); render();
+  });
+})();
+</script>
